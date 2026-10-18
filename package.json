@@ -1,26 +1,24 @@
 {
-  "name": "your-game-api",
+  "name": "scholars-run-api",
   "version": "1.0.0",
-  "description": "CHANGE_ME - one sentence about your game (CS 313 Software Engineering 1)",
+  "description": "Scholar's Run backend API (CS313 Software Engineering 1 · Team C3 · Section 3-1)",
+  "private": true,
+  "author": "Paul Harren G Raquid",
   "main": "src/server.js",
   "scripts": {
+    "dev": "nodemon src/server.js",
     "start": "node src/server.js",
-    "dev": "node --watch src/server.js",
     "db:create": "sequelize-cli db:create",
     "db:migrate": "sequelize-cli db:migrate",
     "db:migrate:status": "sequelize-cli db:migrate:status",
     "db:migrate:undo": "sequelize-cli db:migrate:undo",
+    "db:migrate:undo:all": "sequelize-cli db:migrate:undo:all",
     "db:seed": "sequelize-cli db:seed:all",
-    "db:seed:undo": "sequelize-cli db:seed:undo:all",
-    "db:reset": "node scripts/db-wipe.js && sequelize-cli db:migrate && sequelize-cli db:seed:all",
+    "db:seed:undo:all": "sequelize-cli db:seed:undo:all",
+    "db:reset": "npm run db:seed:undo:all && npm run db:migrate:undo:all && npm run db:migrate && npm run db:seed",
     "db:check": "node scripts/db-check.js",
     "check": "node scripts/ci-check.js"
   },
-  "engines": {
-    "node": ">=22"
-  },
-  "author": "CHANGE_ME - your full name",
-  "license": "ISC",
   "dependencies": {
     "dotenv": "^18.0.7",
     "express": "^5.3.0",
