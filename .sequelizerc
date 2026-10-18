@@ -1,4 +1,4 @@
-// Tells sequelize-cli where this project keeps its files.
+// Tells sequelize-cli where our files live.
 const path = require('path');
 
 module.exports = {
