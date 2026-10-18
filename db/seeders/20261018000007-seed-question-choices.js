@@ -39,7 +39,7 @@ module.exports = {
       }
     }
 
-    await queryInterface.bulkInsert('question_choices', rows);
+    await queryInterface.bulkInsert('question_choices', rows, { ignoreDuplicates: true });
   },
   async down(queryInterface) {
     await queryInterface.bulkDelete('question_choices', null, {});

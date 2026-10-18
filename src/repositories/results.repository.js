@@ -1,44 +1,43 @@
-// Hub Contract rule 7. YOUR WORK (Lab Step 9): write the query for YOUR tables.
-//
-// Return one row per player per FINISHED game (a game whose status is CLOSED,
-// or whatever your design calls a game that has ended), with exactly these names:
-//
-//   session_code   the six-digit join code of the game
-//   started_at     when the game started (may be null)
-//   ended_at       when the game ended
-//   school_id      the player's school ID, from your users table
-//   nickname       the nickname the player used in that game
-//   score          the player's final score
-//   completed      true or false: did this player complete the game?
-//                  YOUR game decides what "completed" means. Write the rule
-//                  in your README, for example "answered every question".
-//
-// If "since" is given, return only games that ended after it.
-//
-// An example for a design with game_sessions, players and users tables:
-//
-//   SELECT s.join_pin AS session_code, s.started_at, s.ended_at,
-//          u.school_id, p.nickname, p.score,
-//          (p.finished_at IS NOT NULL) AS completed
-//     FROM game_sessions s
-//     JOIN players p ON p.session_id = s.session_id
-//     JOIN users u ON u.user_id = p.user_id
-//    WHERE s.status = 'CLOSED'
-//      AND (CAST(:since AS timestamptz) IS NULL OR s.ended_at > :since)
-//    ORDER BY s.ended_at, p.score DESC
-const { QueryTypes } = require('sequelize');
+'use strict';
+
 const { sequelize } = require('../models');
 
-async function findFinishedGamePlayers(since) {
-  const sql = `
-    SELECT NULL AS session_code
-     WHERE FALSE
-  `; // <- replace this placeholder with your query
+async function getResults(hubKey, since) {
+  const sinceClause = since ? `AND r.ended_at > to_timestamp(${Number(since)})` : '';
 
-  return sequelize.query(sql, {
-    type: QueryTypes.SELECT,
-    replacements: { since: since ? since.toISOString() : null },
-  });
+  const [rows] = await sequelize.query(`
+    SELECT
+      r.session_id,
+      r.session_code,
+      r.ended_at,
+      jsonb_agg(
+        jsonb_build_object(
+          'school_id', u.school_id,
+          'nickname', sp.nickname,
+          'score', sp.score,
+          'completed', sp.completed
+        ) ORDER BY sp.score DESC
+      ) AS players
+    FROM runs r
+    JOIN users u ON u.user_id = r.user_id
+    JOIN session_players sp ON sp.session_id = r.session_id AND sp.user_id = r.user_id
+    WHERE r.status = 'completed'
+      ${sinceClause}
+    GROUP BY r.session_id, r.session_code, r.ended_at
+    ORDER BY r.ended_at DESC
+  `);
+
+  return rows.map(row => ({
+    session_code: row.session_code,
+    ended_at: row.ended_at,
+    players: row.players,
+    podium: row.players.slice(0, 3).map((p, i) => ({
+      rank: i + 1,
+      school_id: p.school_id,
+      nickname: p.nickname,
+      score: p.score
+    }))
+  }));
 }
 
-module.exports = { findFinishedGamePlayers };
+module.exports = { getResults };

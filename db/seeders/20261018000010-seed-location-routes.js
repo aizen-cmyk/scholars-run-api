@@ -13,7 +13,7 @@ module.exports = {
       to_location_id: toId,
       created_at: now,
       updated_at: now
-    })));
+    })), { ignoreDuplicates: true });
 
     const tables = [
       ['hosts', 'host_id'],

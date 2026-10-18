@@ -34,7 +34,7 @@ module.exports = {
       });
     }
 
-    await queryInterface.bulkInsert('run_locations', rows);
+    await queryInterface.bulkInsert('run_locations', rows, { ignoreDuplicates: true });
   },
   async down(queryInterface) {
     await queryInterface.bulkDelete('run_locations', null, {});

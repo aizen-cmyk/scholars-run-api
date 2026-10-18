@@ -11,8 +11,8 @@ module.exports = {
       { location_id: 5, name: 'ICT', energy_reward: 0, created_at: now, updated_at: now },
       { location_id: 6, name: 'CICT', energy_reward: 0, created_at: now, updated_at: now },
       { location_id: 7, name: 'BME', energy_reward: 0, created_at: now, updated_at: now },
-      { location_id: 8, name: 'Social Hall', energy_reward: 0, created_at: now, updated_at: now }
-    ]);
+      { location_id: 8, name: 'Social Hall', energy_reward: 0, perfect_multiplier: 2.5, created_at: now, updated_at: now },
+    ], { ignoreDuplicates: true });
   },
   async down(queryInterface) {
     await queryInterface.bulkDelete('locations', null, {});

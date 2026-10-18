@@ -42,7 +42,7 @@ module.exports = {
       }
     }
 
-    await queryInterface.bulkInsert('questions', questions);
+    await queryInterface.bulkInsert('questions', questions, { ignoreDuplicates: true });
   },
   async down(queryInterface) {
     await queryInterface.bulkDelete('questions', null, {});
