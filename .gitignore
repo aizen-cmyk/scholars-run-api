@@ -1,13 +1,10 @@
-# dependencies - anyone can rebuild these with "npm install"
-node_modules/
-
-# secrets - never commit real passwords
+# secrets: never commit
 .env
 
-# editor and OS noise
-.vscode/
+# installed packages: never commit (commit package-lock.json instead)
+node_modules/
+
+# logs and OS files
+*.log
 .DS_Store
 Thumbs.db
-
-# logs
-*.log
