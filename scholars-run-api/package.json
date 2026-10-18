@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "description": "Scholar's Run backend API (CS313 Software Engineering 1 · Team C3 · Section 3-1)",
   "private": true,
-  "author": "Your Full Name",
+  "author": "Paul Harren G Raquid",
   "main": "src/server.js",
   "scripts": {
     "dev": "nodemon src/server.js",
@@ -16,7 +16,8 @@
     "db:seed": "sequelize-cli db:seed:all",
     "db:seed:undo:all": "sequelize-cli db:seed:undo:all",
     "db:reset": "npm run db:seed:undo:all && npm run db:migrate:undo:all && npm run db:migrate && npm run db:seed",
-    "db:check": "node scripts/db-check.js"
+    "db:check": "node scripts/db-check.js",
+    "check": "node scripts/ci-check.js"
   },
   "dependencies": {
     "dotenv": "^18.0.7",
