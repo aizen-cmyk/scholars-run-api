@@ -3,6 +3,7 @@
 module.exports = {
   async up(queryInterface) {
     const now = new Date();
+    const endedAt = new Date(now.getTime() - 1000 * 60 * 60); // 1 hour ago
     const runs = [];
 
     for (let userId = 1; userId <= 5; userId += 1) {
@@ -13,9 +14,12 @@ module.exports = {
           session_id: 1,
           user_id: userId,
           energy: 7,
-          score: 960,
-          final_score: 1632,
+          score: 960 + userId * 10,
+          final_score: 1632 + userId * 10,
           status: 'completed',
+          session_code: '123456',
+          ended_at: endedAt,
+          nickname: `Player${userId}`,
           created_at: now,
           updated_at: now
         },
@@ -27,6 +31,9 @@ module.exports = {
           score: 120,
           final_score: null,
           status: 'lost',
+          session_code: '123456',
+          ended_at: null,
+          nickname: `Player${userId}`,
           created_at: now,
           updated_at: now
         },
@@ -38,6 +45,9 @@ module.exports = {
           score: 260,
           final_score: null,
           status: 'active',
+          session_code: '123456',
+          ended_at: null,
+          nickname: `Player${userId}`,
           created_at: now,
           updated_at: now
         }

@@ -22,6 +22,18 @@ module.exports = {
       onUpdate: 'CASCADE',
       onDelete: 'RESTRICT'
     });
+    await queryInterface.addColumn('runs', 'session_code', {
+      type: Sequelize.STRING(6),
+      allowNull: true,
+    });
+    await queryInterface.addColumn('runs', 'ended_at', {
+      type: Sequelize.DATE,
+      allowNull: true,
+    });
+    await queryInterface.addColumn('runs', 'nickname', {
+      type: Sequelize.STRING(50),
+      allowNull: true,
+    });
   },
 
   async down(queryInterface) {
@@ -37,5 +49,8 @@ module.exports = {
     });
     await queryInterface.removeColumn('tournament_sessions', 'join_code');
     await queryInterface.removeColumn('locations', 'perfect_multiplier');
+    await queryInterface.removeColumn('runs', 'session_code');
+    await queryInterface.removeColumn('runs', 'ended_at');
+    await queryInterface.removeColumn('runs', 'nickname');
   }
 };
