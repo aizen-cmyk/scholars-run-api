@@ -21,7 +21,7 @@ const checkDatabase = async () => {
     const [result] = await sequelize.query(
       `SELECT COUNT(*)::int AS count FROM "${table}"`
     );
-    counts.push({ table, count: result.count });
+    counts.push({ table, count: Number(result[0]?.count) });
   }
 
   console.table(counts);

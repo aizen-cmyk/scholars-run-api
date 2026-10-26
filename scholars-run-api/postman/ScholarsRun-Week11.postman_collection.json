@@ -1,0 +1,349 @@
+{
+  "info": {
+    "name": "Scholar's Run API - Week 11",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:3001/api/v1", "type": "string" },
+    { "key": "host", "value": "1", "type": "string" },
+    { "key": "otherHost", "value": "2", "type": "string" },
+    { "key": "player", "value": "6", "type": "string" },
+    { "key": "tournamentSessionId", "value": "", "type": "string" }
+  ],
+  "item": [
+    {
+      "name": "Module 1 - tournament-sessions",
+      "item": [
+        {
+          "name": "1 It works: POST a valid body as host -> 201",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "X-Demo-User", "value": "{{host}}", "type": "text" },
+              { "key": "Content-Type", "value": "application/json", "type": "text" }
+            ],
+            "body": { "mode": "raw", "raw": "{\"status\":\"available\",\"max_players\":10}", "options": { "raw": { "language": "json" } } },
+            "url": { "raw": "{{baseUrl}}/tournament-sessions", "host": ["{{baseUrl}}"], "path": ["tournament-sessions"] }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 201\", function () { pm.response.to.have.status(201); });",
+                  "pm.test(\"Response has session_id\", function () { pm.expect(pm.response.json()).to.have.property('session_id'); });",
+                  "pm.collectionVariables.set(\"tournamentSessionId\", pm.response.json().session_id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "1b An extra field: host_id 99 is ignored, reply host_id is the caller -> 201",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "X-Demo-User", "value": "{{host}}", "type": "text" },
+              { "key": "Content-Type", "value": "application/json", "type": "text" }
+            ],
+            "body": { "mode": "raw", "raw": "{\"status\":\"available\",\"max_players\":10,\"host_id\":99}", "options": { "raw": { "language": "json" } } },
+            "url": { "raw": "{{baseUrl}}/tournament-sessions", "host": ["{{baseUrl}}"], "path": ["tournament-sessions"] }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 201\", function () { pm.response.to.have.status(201); });",
+                  "pm.test(\"host_id in reply is the caller, not 99\", function () { pm.expect(pm.response.json().host_id).to.equal(parseInt(pm.collectionVariables.get(\"host\"))); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "2 A field is wrong: too-short text and wrong type -> 400 VALIDATION_FAILED",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "X-Demo-User", "value": "{{host}}", "type": "text" },
+              { "key": "Content-Type", "value": "application/json", "type": "text" }
+            ],
+            "body": { "mode": "raw", "raw": "{\"status\":\"\",\"max_players\":\"not-a-number\"}", "options": { "raw": { "language": "json" } } },
+            "url": { "raw": "{{baseUrl}}/tournament-sessions", "host": ["{{baseUrl}}"], "path": ["tournament-sessions"] }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 400\", function () { pm.response.to.have.status(400); });",
+                  "pm.test(\"Error code is VALIDATION_FAILED\", function () { pm.expect(pm.response.json().error.code).to.equal(\"VALIDATION_FAILED\"); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "3 The body is broken: invalid JSON -> 400 INVALID_JSON",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "X-Demo-User", "value": "{{host}}", "type": "text" },
+              { "key": "Content-Type", "value": "application/json", "type": "text" }
+            ],
+            "body": { "mode": "raw", "raw": "{\"status\":\"available\",\"max_players\":10", "options": { "raw": { "language": "json" } } },
+            "url": { "raw": "{{baseUrl}}/tournament-sessions", "host": ["{{baseUrl}}"], "path": ["tournament-sessions"] }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 400\", function () { pm.response.to.have.status(400); });",
+                  "pm.test(\"Error code is INVALID_JSON\", function () { pm.expect(pm.response.json().error.code).to.equal(\"INVALID_JSON\"); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "4 Nobody: GET the list with no X-Demo-User -> 401 AUTH_REQUIRED",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Content-Type", "value": "application/json", "type": "text" }
+            ],
+            "url": { "raw": "{{baseUrl}}/tournament-sessions", "host": ["{{baseUrl}}"], "path": ["tournament-sessions"] }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 401\", function () { pm.response.to.have.status(401); });",
+                  "pm.test(\"Error code is AUTH_REQUIRED\", function () { pm.expect(pm.response.json().error.code).to.equal(\"AUTH_REQUIRED\"); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "5 The wrong role: GET the list as player -> 403 FORBIDDEN",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "X-Demo-User", "value": "{{player}}", "type": "text" },
+              { "key": "Content-Type", "value": "application/json", "type": "text" }
+            ],
+            "url": { "raw": "{{baseUrl}}/tournament-sessions", "host": ["{{baseUrl}}"], "path": ["tournament-sessions"] }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 403\", function () { pm.response.to.have.status(403); });",
+                  "pm.test(\"Error code is FORBIDDEN\", function () { pm.expect(pm.response.json().error.code).to.equal(\"FORBIDDEN\"); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "6 List as host -> 200",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "X-Demo-User", "value": "{{host}}", "type": "text" },
+              { "key": "Content-Type", "value": "application/json", "type": "text" }
+            ],
+            "url": { "raw": "{{baseUrl}}/tournament-sessions", "host": ["{{baseUrl}}"], "path": ["tournament-sessions"] }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 200\", function () { pm.response.to.have.status(200); });",
+                  "pm.test(\"Body is an array\", function () { pm.expect(pm.response.json()).to.be.an('array'); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "7 Read one -> 200",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "X-Demo-User", "value": "{{host}}", "type": "text" },
+              { "key": "Content-Type", "value": "application/json", "type": "text" }
+            ],
+            "url": { "raw": "{{baseUrl}}/tournament-sessions/{{tournamentSessionId}}", "host": ["{{baseUrl}}"], "path": ["tournament-sessions", "{{tournamentSessionId}}"] }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 200\", function () { pm.response.to.have.status(200); });",
+                  "pm.test(\"Returned id matches\", function () { pm.expect(pm.response.json().session_id).to.equal(parseInt(pm.collectionVariables.get(\"tournamentSessionId\"))); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "8 It does not exist: GET /999999 -> 404 TOURNAMENT_SESSION_NOT_FOUND",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "X-Demo-User", "value": "{{host}}", "type": "text" },
+              { "key": "Content-Type", "value": "application/json", "type": "text" }
+            ],
+            "url": { "raw": "{{baseUrl}}/tournament-sessions/999999", "host": ["{{baseUrl}}"], "path": ["tournament-sessions", "999999"] }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 404\", function () { pm.response.to.have.status(404); });",
+                  "pm.test(\"Error code is TOURNAMENT_SESSION_NOT_FOUND\", function () { pm.expect(pm.response.json().error.code).to.equal(\"TOURNAMENT_SESSION_NOT_FOUND\"); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "9 The id is not a number: GET /abc -> 400 VALIDATION_FAILED",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "X-Demo-User", "value": "{{host}}", "type": "text" },
+              { "key": "Content-Type", "value": "application/json", "type": "text" }
+            ],
+            "url": { "raw": "{{baseUrl}}/tournament-sessions/abc", "host": ["{{baseUrl}}"], "path": ["tournament-sessions", "abc"] }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 400\", function () { pm.response.to.have.status(400); });",
+                  "pm.test(\"Error code is VALIDATION_FAILED\", function () { pm.expect(pm.response.json().error.code).to.equal(\"VALIDATION_FAILED\"); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "10 Update one field as host -> 200, other fields kept",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "X-Demo-User", "value": "{{host}}", "type": "text" },
+              { "key": "Content-Type", "value": "application/json", "type": "text" }
+            ],
+            "body": { "mode": "raw", "raw": "{\"max_players\":6}", "options": { "raw": { "language": "json" } } },
+            "url": { "raw": "{{baseUrl}}/tournament-sessions/{{tournamentSessionId}}", "host": ["{{baseUrl}}"], "path": ["tournament-sessions", "{{tournamentSessionId}}"] }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 200\", function () { pm.response.to.have.status(200); });",
+                  "pm.test(\"max_players changed to 6\", function () { pm.expect(pm.response.json().max_players).to.equal(6); });",
+                  "pm.test(\"status kept\", function () { pm.expect(pm.response.json().status).to.equal(\"available\"); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "11 Not the owner: PATCH same row as otherHost -> 403 FORBIDDEN",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "X-Demo-User", "value": "{{otherHost}}", "type": "text" },
+              { "key": "Content-Type", "value": "application/json", "type": "text" }
+            ],
+            "body": { "mode": "raw", "raw": "{\"max_players\":9}", "options": { "raw": { "language": "json" } } },
+            "url": { "raw": "{{baseUrl}}/tournament-sessions/{{tournamentSessionId}}", "host": ["{{baseUrl}}"], "path": ["tournament-sessions", "{{tournamentSessionId}}"] }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 403\", function () { pm.response.to.have.status(403); });",
+                  "pm.test(\"Error code is FORBIDDEN\", function () { pm.expect(pm.response.json().error.code).to.equal(\"FORBIDDEN\"); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "12 Nothing to change: PATCH {} -> 400 VALIDATION_FAILED",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "X-Demo-User", "value": "{{host}}", "type": "text" },
+              { "key": "Content-Type", "value": "application/json", "type": "text" }
+            ],
+            "body": { "mode": "raw", "raw": "{}", "options": { "raw": { "language": "json" } } },
+            "url": { "raw": "{{baseUrl}}/tournament-sessions/{{tournamentSessionId}}", "host": ["{{baseUrl}}"], "path": ["tournament-sessions", "{{tournamentSessionId}}"] }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 400\", function () { pm.response.to.have.status(400); });",
+                  "pm.test(\"Error code is VALIDATION_FAILED\", function () { pm.expect(pm.response.json().error.code).to.equal(\"VALIDATION_FAILED\"); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "13 Delete (keep it LAST in this folder) -> 204",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              { "key": "X-Demo-User", "value": "{{host}}", "type": "text" },
+              { "key": "Content-Type", "value": "application/json", "type": "text" }
+            ],
+            "url": { "raw": "{{baseUrl}}/tournament-sessions/{{tournamentSessionId}}", "host": ["{{baseUrl}}"], "path": ["tournament-sessions", "{{tournamentSessionId}}"] }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 204\", function () { pm.response.to.have.status(204); });"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

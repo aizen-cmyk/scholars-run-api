@@ -1,9 +1,20 @@
-const express = require('express');
-const healthRoutes = require('./health.routes');
-const gameInfoRoutes = require('./game-info.routes');
+// The single place that maps URLs to route files.
+// NOTE FOR THIS REPO: the kit omits /results. Keep the existing /results mount above currentUser.
+const { Router } = require('express');
+const currentUser = require('../middlewares/current-user');
 
-const router = express.Router();
-router.use('/health', healthRoutes);
-router.use('/game-info', gameInfoRoutes);
+const router = Router();
+
+// Hub Contract endpoints: open to everyone, so they come before currentUser.
+router.use('/health', require('./health.routes'));
+router.use('/game-info', require('./game-info.routes'));
+
+// From here on, req.user says who is calling (or null).
+router.use(currentUser);
+
+// Mount your modules here, one line each. For example:
+// router.use('/question-sets', require('./question-set.routes'));
+// router.use('/sessions', require('./session.routes'));
+router.use('/tournament-sessions', require('./tournament-session.routes'));
 
 module.exports = router;
