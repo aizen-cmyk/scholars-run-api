@@ -1,0 +1,840 @@
+{
+  "info": {
+    "name": "Scholar's Run API - Week 11",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:3001/api/v1", "type": "string" },
+    { "key": "host", "value": "1", "type": "string" },
+    { "key": "otherHost", "value": "2", "type": "string" },
+    { "key": "player", "value": "6", "type": "string" },
+    { "key": "player2", "value": "7", "type": "string" },
+    { "key": "hubKey", "value": "dev-hub-key-change-me", "type": "string" },
+    { "key": "tournamentSessionId", "value": "", "type": "string" },
+    { "key": "code", "value": "", "type": "string" },
+    { "key": "code2", "value": "", "type": "string" }
+  ],
+  "item": [
+    {
+      "name": "Module 1 - tournament-sessions",
+      "item": [
+        {
+          "name": "1 It works: POST a valid body as host -> 201",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "X-Demo-User", "value": "{{host}}", "type": "text" },
+              { "key": "Content-Type", "value": "application/json", "type": "text" }
+            ],
+            "body": { "mode": "raw", "raw": "{\"status\":\"available\",\"max_players\":10}", "options": { "raw": { "language": "json" } } },
+            "url": { "raw": "{{baseUrl}}/tournament-sessions", "host": ["{{baseUrl}}"], "path": ["tournament-sessions"] }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 201\", function () { pm.response.to.have.status(201); });",
+                  "pm.test(\"Response has session_id\", function () { pm.expect(pm.response.json()).to.have.property('session_id'); });",
+                  "pm.collectionVariables.set(\"tournamentSessionId\", pm.response.json().session_id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "1b An extra field: host_id 99 is ignored, reply host_id is the caller -> 201",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "X-Demo-User", "value": "{{host}}", "type": "text" },
+              { "key": "Content-Type", "value": "application/json", "type": "text" }
+            ],
+            "body": { "mode": "raw", "raw": "{\"status\":\"available\",\"max_players\":10,\"host_id\":99}", "options": { "raw": { "language": "json" } } },
+            "url": { "raw": "{{baseUrl}}/tournament-sessions", "host": ["{{baseUrl}}"], "path": ["tournament-sessions"] }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 201\", function () { pm.response.to.have.status(201); });",
+                  "pm.test(\"host_id in reply is the caller, not 99\", function () { pm.expect(pm.response.json().host_id).to.equal(parseInt(pm.collectionVariables.get(\"host\"))); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "2 A field is wrong: too-short text and wrong type -> 400 VALIDATION_FAILED",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "X-Demo-User", "value": "{{host}}", "type": "text" },
+              { "key": "Content-Type", "value": "application/json", "type": "text" }
+            ],
+            "body": { "mode": "raw", "raw": "{\"status\":\"\",\"max_players\":\"not-a-number\"}", "options": { "raw": { "language": "json" } } },
+            "url": { "raw": "{{baseUrl}}/tournament-sessions", "host": ["{{baseUrl}}"], "path": ["tournament-sessions"] }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 400\", function () { pm.response.to.have.status(400); });",
+                  "pm.test(\"Error code is VALIDATION_FAILED\", function () { pm.expect(pm.response.json().error.code).to.equal(\"VALIDATION_FAILED\"); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "3 The body is broken: invalid JSON -> 400 INVALID_JSON",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "X-Demo-User", "value": "{{host}}", "type": "text" },
+              { "key": "Content-Type", "value": "application/json", "type": "text" }
+            ],
+            "body": { "mode": "raw", "raw": "{\"status\":\"available\",\"max_players\":10", "options": { "raw": { "language": "json" } } },
+            "url": { "raw": "{{baseUrl}}/tournament-sessions", "host": ["{{baseUrl}}"], "path": ["tournament-sessions"] }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 400\", function () { pm.response.to.have.status(400); });",
+                  "pm.test(\"Error code is INVALID_JSON\", function () { pm.expect(pm.response.json().error.code).to.equal(\"INVALID_JSON\"); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "4 Nobody: GET the list with no X-Demo-User -> 401 AUTH_REQUIRED",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Content-Type", "value": "application/json", "type": "text" }
+            ],
+            "url": { "raw": "{{baseUrl}}/tournament-sessions", "host": ["{{baseUrl}}"], "path": ["tournament-sessions"] }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 401\", function () { pm.response.to.have.status(401); });",
+                  "pm.test(\"Error code is AUTH_REQUIRED\", function () { pm.expect(pm.response.json().error.code).to.equal(\"AUTH_REQUIRED\"); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "5 The wrong role: GET the list as player -> 403 FORBIDDEN",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "X-Demo-User", "value": "{{player}}", "type": "text" },
+              { "key": "Content-Type", "value": "application/json", "type": "text" }
+            ],
+            "url": { "raw": "{{baseUrl}}/tournament-sessions", "host": ["{{baseUrl}}"], "path": ["tournament-sessions"] }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 403\", function () { pm.response.to.have.status(403); });",
+                  "pm.test(\"Error code is FORBIDDEN\", function () { pm.expect(pm.response.json().error.code).to.equal(\"FORBIDDEN\"); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "6 List as host -> 200",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "X-Demo-User", "value": "{{host}}", "type": "text" },
+              { "key": "Content-Type", "value": "application/json", "type": "text" }
+            ],
+            "url": { "raw": "{{baseUrl}}/tournament-sessions", "host": ["{{baseUrl}}"], "path": ["tournament-sessions"] }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 200\", function () { pm.response.to.have.status(200); });",
+                  "pm.test(\"Body is an array\", function () { pm.expect(pm.response.json()).to.be.an('array'); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "7 Read one -> 200",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "X-Demo-User", "value": "{{host}}", "type": "text" },
+              { "key": "Content-Type", "value": "application/json", "type": "text" }
+            ],
+            "url": { "raw": "{{baseUrl}}/tournament-sessions/{{tournamentSessionId}}", "host": ["{{baseUrl}}"], "path": ["tournament-sessions", "{{tournamentSessionId}}"] }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 200\", function () { pm.response.to.have.status(200); });",
+                  "pm.test(\"Returned id matches\", function () { pm.expect(pm.response.json().session_id).to.equal(parseInt(pm.collectionVariables.get(\"tournamentSessionId\"))); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "8 It does not exist: GET /999999 -> 404 TOURNAMENT_SESSION_NOT_FOUND",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "X-Demo-User", "value": "{{host}}", "type": "text" },
+              { "key": "Content-Type", "value": "application/json", "type": "text" }
+            ],
+            "url": { "raw": "{{baseUrl}}/tournament-sessions/999999", "host": ["{{baseUrl}}"], "path": ["tournament-sessions", "999999"] }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 404\", function () { pm.response.to.have.status(404); });",
+                  "pm.test(\"Error code is TOURNAMENT_SESSION_NOT_FOUND\", function () { pm.expect(pm.response.json().error.code).to.equal(\"TOURNAMENT_SESSION_NOT_FOUND\"); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "9 The id is not a number: GET /abc -> 400 VALIDATION_FAILED",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "X-Demo-User", "value": "{{host}}", "type": "text" },
+              { "key": "Content-Type", "value": "application/json", "type": "text" }
+            ],
+            "url": { "raw": "{{baseUrl}}/tournament-sessions/abc", "host": ["{{baseUrl}}"], "path": ["tournament-sessions", "abc"] }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 400\", function () { pm.response.to.have.status(400); });",
+                  "pm.test(\"Error code is VALIDATION_FAILED\", function () { pm.expect(pm.response.json().error.code).to.equal(\"VALIDATION_FAILED\"); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "10 Update one field as host -> 200, other fields kept",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "X-Demo-User", "value": "{{host}}", "type": "text" },
+              { "key": "Content-Type", "value": "application/json", "type": "text" }
+            ],
+            "body": { "mode": "raw", "raw": "{\"max_players\":6}", "options": { "raw": { "language": "json" } } },
+            "url": { "raw": "{{baseUrl}}/tournament-sessions/{{tournamentSessionId}}", "host": ["{{baseUrl}}"], "path": ["tournament-sessions", "{{tournamentSessionId}}"] }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 200\", function () { pm.response.to.have.status(200); });",
+                  "pm.test(\"max_players changed to 6\", function () { pm.expect(pm.response.json().max_players).to.equal(6); });",
+                  "pm.test(\"status kept\", function () { pm.expect(pm.response.json().status).to.equal(\"available\"); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "11 Not the owner: PATCH same row as otherHost -> 403 FORBIDDEN",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "X-Demo-User", "value": "{{otherHost}}", "type": "text" },
+              { "key": "Content-Type", "value": "application/json", "type": "text" }
+            ],
+            "body": { "mode": "raw", "raw": "{\"max_players\":9}", "options": { "raw": { "language": "json" } } },
+            "url": { "raw": "{{baseUrl}}/tournament-sessions/{{tournamentSessionId}}", "host": ["{{baseUrl}}"], "path": ["tournament-sessions", "{{tournamentSessionId}}"] }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 403\", function () { pm.response.to.have.status(403); });",
+                  "pm.test(\"Error code is FORBIDDEN\", function () { pm.expect(pm.response.json().error.code).to.equal(\"FORBIDDEN\"); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "12 Nothing to change: PATCH {} -> 400 VALIDATION_FAILED",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "X-Demo-User", "value": "{{host}}", "type": "text" },
+              { "key": "Content-Type", "value": "application/json", "type": "text" }
+            ],
+            "body": { "mode": "raw", "raw": "{}", "options": { "raw": { "language": "json" } } },
+            "url": { "raw": "{{baseUrl}}/tournament-sessions/{{tournamentSessionId}}", "host": ["{{baseUrl}}"], "path": ["tournament-sessions", "{{tournamentSessionId}}"] }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 400\", function () { pm.response.to.have.status(400); });",
+                  "pm.test(\"Error code is VALIDATION_FAILED\", function () { pm.expect(pm.response.json().error.code).to.equal(\"VALIDATION_FAILED\"); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "13 Delete (keep it LAST in this folder) -> 204",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              { "key": "X-Demo-User", "value": "{{host}}", "type": "text" },
+              { "key": "Content-Type", "value": "application/json", "type": "text" }
+            ],
+            "url": { "raw": "{{baseUrl}}/tournament-sessions/{{tournamentSessionId}}", "host": ["{{baseUrl}}"], "path": ["tournament-sessions", "{{tournamentSessionId}}"] }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 204\", function () { pm.response.to.have.status(204); });"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Module 2 - sessions and joining",
+      "item": [
+        {
+          "name": "1 A host starts a game: POST /sessions -> 201, LOBBY, six-digit code",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "X-Demo-User", "value": "{{host}}", "type": "text" },
+              { "key": "Content-Type", "value": "application/json", "type": "text" }
+            ],
+            "body": { "mode": "raw", "raw": "{\"max_players\":4}", "options": { "raw": { "language": "json" } } },
+            "url": { "raw": "{{baseUrl}}/sessions", "host": ["{{baseUrl}}"], "path": ["sessions"] }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 201\", function () { pm.response.to.have.status(201); });",
+                  "pm.test(\"Status is LOBBY\", function () { pm.expect(pm.response.json().status).to.equal(\"LOBBY\"); });",
+                  "pm.test(\"Code is six digits\", function () { pm.expect(pm.response.json().code).to.match(/^[1-9][0-9]{5}$/); });",
+                  "pm.collectionVariables.set(\"code\", pm.response.json().code);",
+                  "pm.collectionVariables.set(\"session_id\", pm.response.json().session_id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "2 A player tries to start a game -> 403",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "X-Demo-User", "value": "{{player}}", "type": "text" },
+              { "key": "Content-Type", "value": "application/json", "type": "text" }
+            ],
+            "body": { "mode": "raw", "raw": "{\"max_players\":4}", "options": { "raw": { "language": "json" } } },
+            "url": { "raw": "{{baseUrl}}/sessions", "host": ["{{baseUrl}}"], "path": ["sessions"] }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 403\", function () { pm.response.to.have.status(403); });",
+                  "pm.test(\"Error code is FORBIDDEN\", function () { pm.expect(pm.response.json().error.code).to.equal(\"FORBIDDEN\"); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "3 Read the game -> 200",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "X-Demo-User", "value": "{{host}}", "type": "text" },
+              { "key": "Content-Type", "value": "application/json", "type": "text" }
+            ],
+            "url": { "raw": "{{baseUrl}}/sessions/{{code}}", "host": ["{{baseUrl}}"], "path": ["sessions", "{{code}}"] }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 200\", function () { pm.response.to.have.status(200); });",
+                  "pm.test(\"Code matches\", function () { pm.expect(pm.response.json().code).to.equal(pm.collectionVariables.get(\"code\")); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "4 A code that is not six digits (GET /sessions/12345) -> 400",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "X-Demo-User", "value": "{{host}}", "type": "text" },
+              { "key": "Content-Type", "value": "application/json", "type": "text" }
+            ],
+            "url": { "raw": "{{baseUrl}}/sessions/12345", "host": ["{{baseUrl}}"], "path": ["sessions", "12345"] }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 400\", function () { pm.response.to.have.status(400); });",
+                  "pm.test(\"Error code is VALIDATION_FAILED\", function () { pm.expect(pm.response.json().error.code).to.equal(\"VALIDATION_FAILED\"); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "5 A code that no game uses (GET /sessions/999999) -> 404 SESSION_NOT_FOUND",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "X-Demo-User", "value": "{{host}}", "type": "text" },
+              { "key": "Content-Type", "value": "application/json", "type": "text" }
+            ],
+            "url": { "raw": "{{baseUrl}}/sessions/999999", "host": ["{{baseUrl}}"], "path": ["sessions", "999999"] }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 404\", function () { pm.response.to.have.status(404); });",
+                  "pm.test(\"Error code is SESSION_NOT_FOUND\", function () { pm.expect(pm.response.json().error.code).to.equal(\"SESSION_NOT_FOUND\"); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "6 A player joins -> 201, rejoined false",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "X-Demo-User", "value": "{{player}}", "type": "text" },
+              { "key": "Content-Type", "value": "application/json", "type": "text" }
+            ],
+            "body": { "mode": "raw", "raw": "{\"nickname\":\"Ari\"}", "options": { "raw": { "language": "json" } } },
+            "url": { "raw": "{{baseUrl}}/sessions/{{code}}/players", "host": ["{{baseUrl}}"], "path": ["sessions", "{{code}}", "players"] }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 201\", function () { pm.response.to.have.status(201); });",
+                  "pm.test(\"Rejoined is false\", function () { pm.expect(pm.response.json().rejoined).to.equal(false); });",
+                  "pm.test(\"Nickname is Ari\", function () { pm.expect(pm.response.json().nickname).to.equal(\"Ari\"); });",
+                  "pm.collectionVariables.set(\"player_id\", pm.response.json().player_id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "7 The same player joins again -> 200, SAME player_id, rejoined true",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "X-Demo-User", "value": "{{player}}", "type": "text" },
+              { "key": "Content-Type", "value": "application/json", "type": "text" }
+            ],
+            "body": { "mode": "raw", "raw": "{\"nickname\":\"Ari\"}", "options": { "raw": { "language": "json" } } },
+            "url": { "raw": "{{baseUrl}}/sessions/{{code}}/players", "host": ["{{baseUrl}}"], "path": ["sessions", "{{code}}", "players"] }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 200\", function () { pm.response.to.have.status(200); });",
+                  "pm.test(\"Rejoined is true\", function () { pm.expect(pm.response.json().rejoined).to.equal(true); });",
+                  "pm.test(\"Same player_id\", function () { pm.expect(pm.response.json().player_id).to.equal(parseInt(pm.collectionVariables.get(\"player_id\"))); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "8 A second player takes the used nickname -> 409 NICKNAME_TAKEN",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "X-Demo-User", "value": "{{otherHost}}", "type": "text" },
+              { "key": "Content-Type", "value": "application/json", "type": "text" }
+            ],
+            "body": { "mode": "raw", "raw": "{\"nickname\":\"Ari\"}", "options": { "raw": { "language": "json" } } },
+            "url": { "raw": "{{baseUrl}}/sessions/{{code}}/players", "host": ["{{baseUrl}}"], "path": ["sessions", "{{code}}", "players"] }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 409\", function () { pm.response.to.have.status(409); });",
+                  "pm.test(\"Error code is NICKNAME_TAKEN\", function () { pm.expect(pm.response.json().error.code).to.equal(\"NICKNAME_TAKEN\"); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "9 A nickname that is too short -> 400",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "X-Demo-User", "value": "{{player2}}", "type": "text" },
+              { "key": "Content-Type", "value": "application/json", "type": "text" }
+            ],
+            "body": { "mode": "raw", "raw": "{\"nickname\":\"A\"}", "options": { "raw": { "language": "json" } } },
+            "url": { "raw": "{{baseUrl}}/sessions/{{code}}/players", "host": ["{{baseUrl}}"], "path": ["sessions", "{{code}}", "players"] }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 400\", function () { pm.response.to.have.status(400); });",
+                  "pm.test(\"Error code is VALIDATION_FAILED\", function () { pm.expect(pm.response.json().error.code).to.equal(\"VALIDATION_FAILED\"); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "10 The host starts the game (PATCH RUNNING) -> 200",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "X-Demo-User", "value": "{{host}}", "type": "text" },
+              { "key": "Content-Type", "value": "application/json", "type": "text" }
+            ],
+            "body": { "mode": "raw", "raw": "{\"status\":\"RUNNING\"}", "options": { "raw": { "language": "json" } } },
+            "url": { "raw": "{{baseUrl}}/sessions/{{code}}", "host": ["{{baseUrl}}"], "path": ["sessions", "{{code}}"] }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 200\", function () { pm.response.to.have.status(200); });",
+                  "pm.test(\"Status is RUNNING\", function () { pm.expect(pm.response.json().status).to.equal(\"RUNNING\"); });",
+                  "pm.test(\"started_at is set\", function () { pm.expect(pm.response.json().started_at).to.not.be.null; });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "11 A new player (player2) joins too late -> 409 SESSION_NOT_JOINABLE",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "X-Demo-User", "value": "{{player2}}", "type": "text" },
+              { "key": "Content-Type", "value": "application/json", "type": "text" }
+            ],
+            "body": { "mode": "raw", "raw": "{\"nickname\":\"Felix\"}", "options": { "raw": { "language": "json" } } },
+            "url": { "raw": "{{baseUrl}}/sessions/{{code}}/players", "host": ["{{baseUrl}}"], "path": ["sessions", "{{code}}", "players"] }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 409\", function () { pm.response.to.have.status(409); });",
+                  "pm.test(\"Error code is SESSION_NOT_JOINABLE\", function () { pm.expect(pm.response.json().error.code).to.equal(\"SESSION_NOT_JOINABLE\"); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "12 A status change that is not allowed (PATCH RUNNING again) -> 409 INVALID_STATUS_CHANGE",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "X-Demo-User", "value": "{{host}}", "type": "text" },
+              { "key": "Content-Type", "value": "application/json", "type": "text" }
+            ],
+            "body": { "mode": "raw", "raw": "{\"status\":\"RUNNING\"}", "options": { "raw": { "language": "json" } } },
+            "url": { "raw": "{{baseUrl}}/sessions/{{code}}", "host": ["{{baseUrl}}"], "path": ["sessions", "{{code}}"] }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 409\", function () { pm.response.to.have.status(409); });",
+                  "pm.test(\"Error code is INVALID_STATUS_CHANGE\", function () { pm.expect(pm.response.json().error.code).to.equal(\"INVALID_STATUS_CHANGE\"); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "13 Player 1 returns to the RUNNING game -> 200 (rejoin still works)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "X-Demo-User", "value": "{{player}}", "type": "text" },
+              { "key": "Content-Type", "value": "application/json", "type": "text" }
+            ],
+            "body": { "mode": "raw", "raw": "{\"nickname\":\"Ari\"}", "options": { "raw": { "language": "json" } } },
+            "url": { "raw": "{{baseUrl}}/sessions/{{code}}/players", "host": ["{{baseUrl}}"], "path": ["sessions", "{{code}}", "players"] }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 200\", function () { pm.response.to.have.status(200); });",
+                  "pm.test(\"Rejoined is true\", function () { pm.expect(pm.response.json().rejoined).to.equal(true); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "14 One game at a time: host starts second game (save code2); player 1 tries to join it -> 409 ALREADY_IN_GAME",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "X-Demo-User", "value": "{{host}}", "type": "text" },
+              { "key": "Content-Type", "value": "application/json", "type": "text" }
+            ],
+            "body": { "mode": "raw", "raw": "{\"max_players\":4}", "options": { "raw": { "language": "json" } } },
+            "url": { "raw": "{{baseUrl}}/sessions", "host": ["{{baseUrl}}"], "path": ["sessions"] }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 201\", function () { pm.response.to.have.status(201); });",
+                  "pm.test(\"Code2 is six digits\", function () { pm.expect(pm.response.json().code).to.match(/^[1-9][0-9]{5}$/); });",
+                  "pm.collectionVariables.set(\"code2\", pm.response.json().code);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "14b Player 1 tries to join second game -> 409 ALREADY_IN_GAME",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "X-Demo-User", "value": "{{player}}", "type": "text" },
+              { "key": "Content-Type", "value": "application/json", "type": "text" }
+            ],
+            "body": { "mode": "raw", "raw": "{\"nickname\":\"Ari\"}", "options": { "raw": { "language": "json" } } },
+            "url": { "raw": "{{baseUrl}}/sessions/{{code2}}/players", "host": ["{{baseUrl}}"], "path": ["sessions", "{{code2}}", "players"] }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 409\", function () { pm.response.to.have.status(409); });",
+                  "pm.test(\"Error code is ALREADY_IN_GAME\", function () { pm.expect(pm.response.json().error.code).to.equal(\"ALREADY_IN_GAME\"); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "15 The host closes the first game (PATCH CLOSED) -> 200, ended_at set",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "X-Demo-User", "value": "{{host}}", "type": "text" },
+              { "key": "Content-Type", "value": "application/json", "type": "text" }
+            ],
+            "body": { "mode": "raw", "raw": "{\"status\":\"CLOSED\"}", "options": { "raw": { "language": "json" } } },
+            "url": { "raw": "{{baseUrl}}/sessions/{{code}}", "host": ["{{baseUrl}}"], "path": ["sessions", "{{code}}"] }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 200\", function () { pm.response.to.have.status(200); });",
+                  "pm.test(\"Status is CLOSED\", function () { pm.expect(pm.response.json().status).to.equal(\"CLOSED\"); });",
+                  "pm.test(\"ended_at is set\", function () { pm.expect(pm.response.json().ended_at).to.not.be.null; });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "16 A closed game cannot run again (PATCH RUNNING) -> 409",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "X-Demo-User", "value": "{{host}}", "type": "text" },
+              { "key": "Content-Type", "value": "application/json", "type": "text" }
+            ],
+            "body": { "mode": "raw", "raw": "{\"status\":\"RUNNING\"}", "options": { "raw": { "language": "json" } } },
+            "url": { "raw": "{{baseUrl}}/sessions/{{code}}", "host": ["{{baseUrl}}"], "path": ["sessions", "{{code}}"] }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 409\", function () { pm.response.to.have.status(409); });",
+                  "pm.test(\"Error code is INVALID_STATUS_CHANGE\", function () { pm.expect(pm.response.json().error.code).to.equal(\"INVALID_STATUS_CHANGE\"); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "17 GET /results with X-Hub-Key lists the closed game -> 200",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "X-Hub-Key", "value": "{{hubKey}}", "type": "text" },
+              { "key": "Content-Type", "value": "application/json", "type": "text" }
+            ],
+            "url": { "raw": "{{baseUrl}}/results", "host": ["{{baseUrl}}"], "path": ["results"] }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 200\", function () { pm.response.to.have.status(200); });",
+                  "pm.test(\"Closed game code is in results\", function () { var body = pm.response.json(); pm.expect(body.some(function(g){ return g.code === pm.collectionVariables.get(\"code\"); })).to.equal(true); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "18 GET /results with no X-Hub-Key -> 401",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Content-Type", "value": "application/json", "type": "text" }
+            ],
+            "url": { "raw": "{{baseUrl}}/results", "host": ["{{baseUrl}}"], "path": ["results"] }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 401\", function () { pm.response.to.have.status(401); });",
+                  "pm.test(\"Error code is AUTH_REQUIRED\", function () { pm.expect(pm.response.json().error.code).to.equal(\"AUTH_REQUIRED\"); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "19 Delete Module 1 row used in a game -> 409 TOURNAMENT_SESSION_IN_USE",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              { "key": "X-Demo-User", "value": "{{host}}", "type": "text" },
+              { "key": "Content-Type", "value": "application/json", "type": "text" }
+            ],
+            "url": { "raw": "{{baseUrl}}/tournament-sessions/{{session_id}}", "host": ["{{baseUrl}}"], "path": ["tournament-sessions", "{{session_id}}"] }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 409\", function () { pm.response.to.have.status(409); });",
+                  "pm.test(\"Error code is TOURNAMENT_SESSION_IN_USE\", function () { pm.expect(pm.response.json().error.code).to.equal(\"TOURNAMENT_SESSION_IN_USE\"); });"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
